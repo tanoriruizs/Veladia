@@ -1,0 +1,21 @@
+# dependencias
+node_modules/
+
+# logs y temporales
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# editores
+.vscode/
+.idea/
+
+# entorno
+.env
+.env.*
+
+# caché de build
+.vite/
+
+# nota: dist/ se versiona a propósito (se carga como extensión descomprimida)
