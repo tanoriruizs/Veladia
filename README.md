@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img alt="Versión" src="https://img.shields.io/badge/versión-1.0.0-2563eb" />
+  <img alt="Versión" src="https://img.shields.io/badge/versión-1.1.0-2563eb" />
   <img alt="Manifest V3" src="https://img.shields.io/badge/Manifest-V3-2563eb" />
   <img alt="React 19" src="https://img.shields.io/badge/React-19-2563eb" />
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.7-2563eb" />
@@ -74,11 +74,14 @@ todas las señales detectadas.
 - **Icono dinámico por pestaña** con indicador circular de estado.
 - **Banner de advertencia** configurable en los sitios peligrosos.
 - **Popup con el desglose** de cada señal detectada y su categoría.
-- **Detección de typosquatting** (distancia de Levenshtein contra marcas conocidas).
+- **Detección de typosquatting y homoglyphs** (distancia de Levenshtein + normalización
+  de caracteres parecidos: `g00gle`, `micros0ft`, letras cirílicas/griegas) contra ~110 marcas.
+- **Marca sobre hosting gratuito** (p. ej. `paypal-login.github.io`).
 - **Reglas de contenido**: formularios que envían credenciales a otro dominio, contraseñas
   sin HTTPS, suplantación de marca, favicon ajeno, iframes a pantalla completa y más.
-- **Reputación local**: listas allow/block embebidas + tus propias listas.
-- **Soporte de navegación en SPAs** (History API): reanaliza al cambiar de ruta.
+- **Reputación local**: listas allow/block generadas desde feeds reales + tus propias listas.
+- **Soporte de navegación en SPAs** (History API) y **reanálisis de contenido inyectado**
+  (MutationObserver): reanaliza al cambiar de ruta o cuando aparecen formularios nuevos.
 - **Ajustes**: sensibilidad (relajada / normal / estricta), banner y tema.
 - **Tour de bienvenida** en la primera instalación y **modo oscuro** con grises neutros.
 
@@ -95,15 +98,19 @@ Detalle completo en [PRIVACY.md](./PRIVACY.md).
 
 ---
 
-## Instalación (extensión ya compilada)
+## Instalación
 
-La carpeta `dist/` incluye la extensión lista para cargar:
+Veladia todavía no está en la Chrome Web Store, así que se instala manualmente.
+La carpeta `dist/` ya viene compilada en el repo, lista para cargar:
 
-1. Abre `chrome://extensions`.
-2. Activa el **Modo de desarrollador**.
-3. Pulsa **Cargar descomprimida** y selecciona la carpeta `dist/`.
+1. Descarga el proyecto (**Code → Download ZIP**) y descomprímelo, o clónalo.
+2. Abre `chrome://extensions`.
+3. Activa el **Modo de desarrollador** (arriba a la derecha).
+4. Pulsa **Cargar descomprimida** y selecciona la carpeta `dist/`.
 
 > En la primera instalación se abre automáticamente el tour de bienvenida.
+
+¿Prefieres compilarla tú mismo? `npm install && npm run build` regenera `dist/`.
 
 ---
 
@@ -113,9 +120,12 @@ Requiere Node.js 18+.
 
 ```bash
 npm install
-npm run dev      # desarrollo con hot-reload
-npm run build    # build de producción → dist/
-npm test         # tests del motor (Vitest)
+npm run dev           # desarrollo con hot-reload
+npm run build         # build de producción → dist/
+npm test              # tests del motor (Vitest)
+npm run test:e2e      # smoke test en un navegador real (Playwright; requiere build)
+npm run lint          # análisis estático (ESLint)
+npm run update-lists  # regenera las listas de reputación desde feeds reales
 ```
 
 > Recomendación: trabaja el proyecto **fuera de carpetas sincronizadas** (OneDrive, etc.);
@@ -163,10 +173,11 @@ Cada señal aporta un peso; la suma (acotada a 0–100) es la puntuación.
 
 | Categoría   | Señal                                        | Peso |
 |-------------|----------------------------------------------|-----:|
-| URL         | Dominio parecido a una marca (typosquatting) | 35   |
+| URL         | Dominio parecido a una marca (typosquatting / homoglyph) | 35 |
 | URL         | Host es una IP en vez de un dominio          | 30   |
 | URL         | La URL contiene `@` (oculta el destino)      | 30   |
 | URL         | Punycode (`xn--`, imita caracteres)          | 30   |
+| URL         | Marca sobre hosting gratuito                 | 22   |
 | URL         | TLD poco confiable                           | 18   |
 | URL         | Demasiados subdominios anidados              | 15   |
 | URL         | Palabras típicas de phishing                 | ≤15  |
@@ -205,11 +216,21 @@ Desde la página de **Ajustes** (icono de engranaje en el popup) puedes:
 
 ---
 
+## Reputación (listas reales)
+
+El archivo `src/data/allowlist.ts` se **genera** a partir de feeds públicos y se
+commitea al repositorio (el build nunca depende de la red):
+
+- **Allowlist** ← [Tranco](https://tranco-list.eu) (top 5000 sitios más visitados).
+- **Blocklist** ← [OpenPhish](https://openphish.com) (URLs de phishing en vivo).
+
+Regenera las listas con `npm run update-lists` (recomendado de forma periódica).
+
 ## Limitaciones
 
-Las listas de reputación embebidas son de muestra. En una versión posterior se generarán
-desde feeds reales (PhishTank / OpenPhish / Tranco) en tiempo de build. Veladia no reemplaza
-a un antivirus ni a las buenas prácticas de seguridad.
+La blocklist embebida cubre el feed comunitario de OpenPhish, no el universo
+completo del phishing. Veladia es una capa de apoyo: no reemplaza a un antivirus
+ni a las buenas prácticas de seguridad.
 
 ---
 

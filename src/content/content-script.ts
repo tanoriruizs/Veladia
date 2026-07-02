@@ -4,8 +4,18 @@ import { MESSAGE } from '../shared/messages';
 import type { AnalysisResult } from '../engine/types';
 
 let lastUrl = '';
+let lastSignature = '';
+
+// firma de lo que importa; si no cambia, no re-analizamos
+function contentSignature(): string {
+  const forms = document.forms.length;
+  const passwords = document.querySelectorAll('input[type="password"]').length;
+  const iframes = document.querySelectorAll('iframe').length;
+  return `${forms}|${passwords}|${iframes}`;
+}
 
 function analyzeCurrentPage(): void {
+  lastSignature = contentSignature();
   const context = collectPageContext();
   try {
     chrome.runtime.sendMessage(
@@ -55,9 +65,24 @@ function installSpaHooks(): void {
   });
 }
 
+// reanaliza si aparece contenido nuevo (formularios inyectados por JS)
+function installContentObserver(): void {
+  let scheduled = false;
+  const observer = new MutationObserver(() => {
+    if (scheduled) return;
+    scheduled = true;
+    setTimeout(() => {
+      scheduled = false;
+      if (contentSignature() !== lastSignature) analyzeCurrentPage();
+    }, 800);
+  });
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+}
+
 function start(): void {
   lastUrl = location.href;
   installSpaHooks();
+  installContentObserver();
   analyzeCurrentPage();
 }
 

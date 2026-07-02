@@ -13,4 +13,20 @@ describe('analyzeUrl', () => {
     expect(s).toContain('phishing-keywords');
   });
   it('no genera señales para una URL legítima simple', () => { expect(analyzeUrl('https://www.wikipedia.org/')).toHaveLength(0); });
+
+  it('no confunde un "@" de la query con credenciales ocultas', () => {
+    expect(ids('https://shop.example.com/checkout?email=user@gmail.com')).not.toContain('at-symbol');
+  });
+  it('no marca subdominios de ccTLD legítimos como anidamiento', () => {
+    expect(ids('https://www.google.co.uk/')).not.toContain('subdomain-depth');
+  });
+  it('marca anidamiento real de subdominios', () => {
+    expect(ids('https://login.secure.account.example.com/')).toContain('subdomain-depth');
+  });
+  it('detecta una marca sobre hosting gratuito', () => {
+    expect(ids('https://paypal-login.github.io/')).toContain('brand-on-free-host');
+  });
+  it('no marca un sitio sin marca en hosting gratuito', () => {
+    expect(ids('https://mi-blog-personal.github.io/')).not.toContain('brand-on-free-host');
+  });
 });

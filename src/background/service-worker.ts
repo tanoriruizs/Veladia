@@ -26,12 +26,20 @@ async function updateBadge(tabId: number, result: AnalysisResult): Promise<void>
   }
 }
 
+// avisa al popup si está abierto (si no hay nadie, ignora el error)
+function pushResult(tabId: number, result: AnalysisResult): void {
+  chrome.runtime
+    .sendMessage({ type: MESSAGE.RESULT_PUSH, tabId, result })
+    .catch(() => {});
+}
+
 async function quickAnalyze(tabId: number, url: string): Promise<void> {
   if (!/^https?:/.test(url)) return;
   const settings = await getSettings();
   const result = analyze(url, settings);
   await saveResult(tabId, result);
   await updateBadge(tabId, result);
+  pushResult(tabId, result);
 }
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
@@ -53,6 +61,7 @@ chrome.runtime.onMessage.addListener((message: Message, sender, sendResponse) =>
       const result = analyze(message.context.url, settings, message.context);
       await saveResult(tabId, result);
       await updateBadge(tabId, result);
+      pushResult(tabId, result);
       sendResponse({ type: MESSAGE.RESULT, result, showBanner: settings.showBanner });
     })();
     return true;

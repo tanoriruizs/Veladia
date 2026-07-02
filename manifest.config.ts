@@ -18,6 +18,6 @@ export default defineManifest({
   content_scripts: [
     { matches: ['http://*/*', 'https://*/*'], js: ['src/content/content-script.ts'], run_at: 'document_idle' },
   ],
-  permissions: ['storage', 'tabs', 'scripting'],
+  permissions: ['storage', 'tabs'],
   host_permissions: ['http://*/*', 'https://*/*'],
 });

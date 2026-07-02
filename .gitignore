@@ -18,4 +18,10 @@ Thumbs.db
 # caché de build
 .vite/
 
-# nota: dist/ se versiona a propósito (se carga como extensión descomprimida)
+# nota: dist/ se versiona a propósito (extensión lista para cargar, aún no en la Web Store)
+
+# playwright
+test-results/
+playwright-report/
+/blob-report/
+.playwright/

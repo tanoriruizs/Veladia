@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { levenshtein, detectTyposquatting } from '../src/engine/typosquatting';
+import { levenshtein, detectTyposquatting, skeleton } from '../src/engine/typosquatting';
 
 describe('levenshtein', () => {
   it('devuelve 0 para cadenas idénticas', () => { expect(levenshtein('paypal.com', 'paypal.com')).toBe(0); });
@@ -19,4 +19,21 @@ describe('detectTyposquatting', () => {
     expect(detectTyposquatting('www.google.com')).toBeNull();
   });
   it('no marca dominios totalmente distintos', () => { expect(detectTyposquatting('mi-blog-personal.com')).toBeNull(); });
+  it('detecta homoglyphs con dígitos parecidos', () => {
+    expect(detectTyposquatting('g00gle.com')?.label).toContain('imita');
+    expect(detectTyposquatting('micros0ft.com')?.label).toContain('imita');
+    expect(detectTyposquatting('app1e.com')?.label).toContain('apple.com');
+  });
+  it('detecta homoglyphs con caracteres cirílicos', () => {
+    // "аpple.com" con "а" cirílica (U+0430)
+    expect(detectTyposquatting('аpple.com')?.id).toBe('typosquatting');
+  });
+});
+
+describe('skeleton', () => {
+  it('normaliza caracteres confundibles a latino ASCII', () => {
+    expect(skeleton('g00gle')).toBe('google');
+    expect(skeleton('paypa1')).toBe('paypal');
+    expect(skeleton('рayрal')).toBe('paypal'); // р cirílica
+  });
 });

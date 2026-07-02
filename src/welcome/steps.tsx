@@ -13,11 +13,21 @@ function MiniRings() {
     </div>
   );
 }
+const STATE_ICONS = [
+  { level: 'safe', label: 'Seguro' },
+  { level: 'suspicious', label: 'Sospechoso' },
+  { level: 'dangerous', label: 'Peligroso' },
+] as const;
+
 function BadgeArt() {
   return (
-    <div className="art-badge">
-      <div className="art-badge__chip"><Logo size={40} /></div>
-      <span className="art-badge__dot art-badge__dot--danger">✕</span>
+    <div className="art-states">
+      {STATE_ICONS.map((s) => (
+        <div key={s.level} className="art-state">
+          <img src={chrome.runtime.getURL(`icons/state-${s.level}-48.png`)} alt={s.label} width={46} height={46} />
+          <span>{s.label}</span>
+        </div>
+      ))}
     </div>
   );
 }

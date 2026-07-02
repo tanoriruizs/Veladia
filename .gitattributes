@@ -1,0 +1,2 @@
+# el build versionado no debe sufrir conversión de fin de línea (Windows vs CI)
+dist/** -text

@@ -34,6 +34,22 @@ describe('analyze (integración)', () => {
     const r = analyze(ctx.url, settings, ctx);
     expect(r.signals.map((s) => s.id)).toContain('favicon-mismatch');
   });
+  it('detecta una marca mencionada en el título de un dominio ajeno', () => {
+    const ctx = baseCtx({ url: 'https://paypal-seguro.tk/', title: 'Inicia sesión en PayPal' });
+    const r = analyze(ctx.url, settings, ctx);
+    expect(r.signals.map((s) => s.id)).toContain('brand-mismatch');
+  });
+  it('no marca palabras comunes que coinciden con una marca (Live)', () => {
+    const ctx = baseCtx({ url: 'https://sports.example.com/', title: 'Live Scores Today' });
+    const r = analyze(ctx.url, settings, ctx);
+    expect(r.signals.map((s) => s.id)).not.toContain('brand-mismatch');
+  });
+  it('no marca una marca como substring dentro de otra palabra', () => {
+    // "pineapple" contiene "apple" pero no debe activar brand-mismatch.
+    const ctx = baseCtx({ url: 'https://recetas.example.com/', title: 'Pastel de pineapple casero' });
+    const r = analyze(ctx.url, settings, ctx);
+    expect(r.signals.map((s) => s.id)).not.toContain('brand-mismatch');
+  });
   it('la allowlist del usuario reduce el riesgo', () => {
     const custom: Settings = { ...settings, userAllowlist: ['mi-empresa.tk'] };
     const r = analyze('https://mi-empresa.tk/', custom);

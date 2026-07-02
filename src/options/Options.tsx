@@ -76,7 +76,7 @@ export function Options() {
 
         <footer className="opt__foot">
           <p className="opt__foot-msg">Análisis 100% local. Ningún dato de navegación sale de tu equipo.</p>
-          <p className="opt__foot-meta">Veladia v1.0.0 · <a href="https://github.com/tanoriruizs" target="_blank" rel="noopener noreferrer">github.com/tanoriruizs</a></p>
+          <p className="opt__foot-meta">Veladia v1.1.0 · <a href="https://github.com/tanoriruizs/Veladia" target="_blank" rel="noopener noreferrer">github.com/tanoriruizs/Veladia</a></p>
         </footer>
       </main>
 

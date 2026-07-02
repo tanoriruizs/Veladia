@@ -36,10 +36,10 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--
 .art-rings .ring__track { stroke: var(--border); }
 .art-rings .ring__score { font: 700 20px var(--font); }
 .art-rings .ring__unit { font: 500 8px var(--font); fill: var(--muted); }
-.art-badge { position: relative; }
-.art-badge__chip { width: 60px; height: 60px; border-radius: 15px; background: #eef2f6; display: grid; place-items: center; }
-.art-badge__dot { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 12px; font-weight: 700; border: 2px solid var(--bg); }
-.art-badge__dot--danger { background: #b91c1c; }
+.art-states { display: flex; align-items: flex-start; gap: 22px; }
+.art-state { display: flex; flex-direction: column; align-items: center; gap: 9px; }
+.art-state img { width: 46px; height: 46px; }
+.art-state span { font-size: 12px; font-weight: 600; color: var(--muted); }
 .art-banner { width: 240px; }
 .art-banner__bar { background: #b91c1c; color: #fff; font-size: 12px; font-weight: 600; padding: 9px 12px; border-radius: 8px 8px 0 0; }
 .art-banner__page { height: 80px; background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 8px 8px; }

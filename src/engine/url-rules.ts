@@ -1,6 +1,6 @@
-import { parseUrl, type ParsedUrl } from './url-utils';
+import { parseUrl, registrableDomain, multiTenantSuffix, type ParsedUrl } from './url-utils';
 import { SUSPICIOUS_TLDS } from '../data/suspicious-tlds';
-import { detectTyposquatting } from './typosquatting';
+import { detectTyposquatting, brandBaseNames } from './typosquatting';
 import type { Signal } from './types';
 
 const PHISHING_KEYWORDS = [
@@ -30,6 +30,7 @@ export function analyzeUrl(rawUrl: string): Signal[] {
   push(checkHyphenSpam(parsed));
   push(checkUrlShortener(parsed));
   push(checkInsecureProtocol(parsed));
+  push(checkBrandOnFreeHost(parsed));
   push(detectTyposquatting(parsed.hostname));
 
   return signals;
@@ -40,7 +41,8 @@ function checkIpHost(p: ParsedUrl): Signal | null {
   return { id: 'ip-host', label: 'La dirección usa una IP en lugar de un dominio', weight: 30, category: 'url' };
 }
 function checkAtSymbol(p: ParsedUrl): Signal | null {
-  if (!p.url.href.includes('@')) return null;
+  // el @ solo engaña si está en las credenciales, no en la query
+  if (!p.url.username) return null;
   return { id: 'at-symbol', label: 'La URL contiene "@", lo que oculta el destino real', weight: 30, category: 'url' };
 }
 function checkPunycode(p: ParsedUrl): Signal | null {
@@ -53,7 +55,11 @@ function checkSuspiciousTld(p: ParsedUrl): Signal | null {
   return { id: 'suspicious-tld', label: `Dominio de nivel superior poco confiable (.${tld})`, weight: 18, category: 'url' };
 }
 function checkSubdomainDepth(p: ParsedUrl): Signal | null {
-  if (p.isIpHost || p.labels.length <= 3) return null;
+  if (p.isIpHost) return null;
+  // subdominios reales, sin contar el dominio registrable (evita fallar en co.uk)
+  const registrableLabels = registrableDomain(p.hostname).split('.').length;
+  const subdomainCount = p.labels.length - registrableLabels;
+  if (subdomainCount < 2) return null;
   return { id: 'subdomain-depth', label: 'Demasiados subdominios anidados (técnica de ofuscación)', weight: 15, category: 'url' };
 }
 function checkPhishingKeywords(p: ParsedUrl): Signal | null {
@@ -78,4 +84,14 @@ function checkUrlShortener(p: ParsedUrl): Signal | null {
 function checkInsecureProtocol(p: ParsedUrl): Signal | null {
   if (p.protocol === 'https') return null;
   return { id: 'no-https', label: 'La conexión no usa HTTPS (sin cifrado)', weight: 12, category: 'url' };
+}
+// nombre de marca sobre hosting gratis (paypal-login.github.io)
+function checkBrandOnFreeHost(p: ParsedUrl): Signal | null {
+  const suffix = multiTenantSuffix(p.hostname);
+  if (!suffix) return null;
+  const siteLabel = p.hostname.slice(0, -(suffix.length + 1)).split('.').pop() ?? '';
+  const tokens = new Set(siteLabel.split('-').filter(Boolean));
+  const brand = brandBaseNames.find((name) => tokens.has(name));
+  if (!brand) return null;
+  return { id: 'brand-on-free-host', label: `El sitio usa el nombre "${brand}" sobre hosting gratuito (${suffix})`, weight: 22, category: 'url' };
 }

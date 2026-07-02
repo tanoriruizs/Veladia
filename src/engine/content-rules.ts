@@ -1,5 +1,6 @@
 import { parseUrl, registrableDomain } from './url-utils';
 import { KNOWN_BRANDS } from '../data/brands';
+import { AMBIGUOUS_BRAND_WORDS } from './typosquatting';
 import type { PageContext, Signal } from './types';
 
 export function analyzeContent(ctx: PageContext): Signal[] {
@@ -39,7 +40,10 @@ function checkBrandMismatch(ctx: PageContext, pageDomain: string): Signal | null
   const title = ctx.title.toLowerCase();
   for (const brand of KNOWN_BRANDS) {
     const name = brand.split('.')[0];
-    if (name.length >= 4 && title.includes(name) && registrableDomain(pageDomain) !== brand) {
+    // palabra completa, no substring (que "pineapple" no active "apple")
+    if (name.length < 4 || AMBIGUOUS_BRAND_WORDS.has(name)) continue;
+    if (pageDomain === brand) continue;
+    if (new RegExp(`\\b${name}\\b`).test(title)) {
       return { id: 'brand-mismatch', label: `La página menciona "${name}" pero el dominio no le pertenece`, weight: 25, category: 'content' };
     }
   }
