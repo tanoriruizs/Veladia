@@ -39,11 +39,11 @@ seguridad, pero te da una señal clara y temprana cuando algo no cuadra.
 El icono de la barra cambia según el riesgo de la pestaña actual:
 
 <p align="center">
-  <img src="icons/state-safe-48.png" width="44" alt="Seguro" />
+  <img src="public/icons/state-safe-48.png" width="44" alt="Seguro" />
   &nbsp;&nbsp;&nbsp;
-  <img src="icons/state-suspicious-48.png" width="44" alt="Sospechoso" />
+  <img src="public/icons/state-suspicious-48.png" width="44" alt="Sospechoso" />
   &nbsp;&nbsp;&nbsp;
-  <img src="icons/state-dangerous-48.png" width="44" alt="Peligroso" />
+  <img src="public/icons/state-dangerous-48.png" width="44" alt="Peligroso" />
 </p>
 
 <p align="center">
@@ -142,7 +142,7 @@ src/
 │   ├── url-rules.ts       # Señales basadas en la URL
 │   ├── content-rules.ts   # Señales basadas en el DOM de la página
 │   ├── reputation.ts      # Listas allow/block (embebidas + del usuario)
-│   ├── typosquatting.ts   # Distancia de Levenshtein contra marcas conocidas
+│   ├── typosquatting.ts   # Levenshtein + homoglyphs contra marcas conocidas
 │   ├── scoring.ts         # Suma de pesos y clasificación por sensibilidad
 │   ├── url-utils.ts       # Parseo de URL y dominio registrable
 │   └── types.ts           # Tipos compartidos
