@@ -3,6 +3,23 @@
 Todas las novedades relevantes de Veladia se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/) y versionado semántico.
 
+## [1.2.0] — 2026-07-03
+
+### Añadido
+- Pantalla de bloqueo a página completa en sitios de phishing confirmado
+  (blocklist), con "volver atrás" y "continuar bajo mi riesgo".
+- Historial de detecciones en Ajustes (solo local, máx. 50 sitios, con borrado).
+- Exportar e importar las listas del usuario en JSON desde Ajustes.
+
+## [1.1.1] — 2026-07-03
+
+### Corregido
+- Falso positivo de suplantación de marca entre marcas del mismo dueño
+  (p. ej. "Gmail" en `google.com`, "Office" en `microsoft.com`): se añaden
+  familias de marcas.
+- En dominios de confianza ya no se muestran señales de "imita a una marca"
+  (typosquatting, favicon o marca ajena): se filtran por reputación.
+
 ## [1.1.0] — 2026-07-01
 
 ### Detección

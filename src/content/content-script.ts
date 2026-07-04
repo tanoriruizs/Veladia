@@ -1,10 +1,13 @@
 import { collectPageContext } from './collect-context';
 import { showWarningBanner, removeWarningBanner } from './banner';
+import { showInterstitial, removeInterstitial } from './interstitial';
 import { MESSAGE } from '../shared/messages';
 import type { AnalysisResult } from '../engine/types';
 
 let lastUrl = '';
 let lastSignature = '';
+// hosts donde el usuario eligió "continuar bajo mi riesgo" (solo esta sesión)
+const acceptedRisk = new Set<string>();
 
 // firma de lo que importa; si no cambia, no re-analizamos
 function contentSignature(): string {
@@ -22,8 +25,14 @@ function analyzeCurrentPage(): void {
       { type: MESSAGE.ANALYZE_CONTENT, context },
       (response: { result: AnalysisResult | null; showBanner?: boolean } | undefined) => {
         if (chrome.runtime.lastError || !response?.result) return;
-        if (response.showBanner && response.result.level === 'dangerous') {
-          showWarningBanner(response.result);
+        const result = response.result;
+        const isBlocklisted = result.signals.some((s) => s.id === 'blocklisted');
+
+        if (isBlocklisted && !acceptedRisk.has(result.hostname)) {
+          removeWarningBanner();
+          showInterstitial(result, () => acceptedRisk.add(result.hostname));
+        } else if (response.showBanner && result.level === 'dangerous') {
+          showWarningBanner(result);
         } else {
           removeWarningBanner();
         }
@@ -38,6 +47,7 @@ function onNavigation(): void {
   if (location.href === lastUrl) return;
   lastUrl = location.href;
   removeWarningBanner();
+  removeInterstitial();
   analyzeCurrentPage();
 }
 

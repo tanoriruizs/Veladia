@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img alt="Versión" src="https://img.shields.io/badge/versión-1.1.0-2563eb" />
+  <img alt="Versión" src="https://img.shields.io/badge/versión-1.2.0-2563eb" />
   <img alt="Manifest V3" src="https://img.shields.io/badge/Manifest-V3-2563eb" />
   <img alt="React 19" src="https://img.shields.io/badge/React-19-2563eb" />
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.7-2563eb" />
@@ -72,8 +72,10 @@ todas las señales detectadas.
 
 - **Puntuación de riesgo 0–100** con veredicto claro: seguro / sospechoso / peligroso.
 - **Icono dinámico por pestaña** con indicador circular de estado.
-- **Banner de advertencia** configurable en los sitios peligrosos.
+- **Banner de advertencia** configurable en los sitios peligrosos y **pantalla de
+  bloqueo** a página completa en phishing confirmado.
 - **Popup con el desglose** de cada señal detectada y su categoría.
+- **Historial de detecciones** local en Ajustes y **exportar/importar** tus listas.
 - **Detección de typosquatting y homoglyphs** (distancia de Levenshtein + normalización
   de caracteres parecidos: `g00gle`, `micros0ft`, letras cirílicas/griegas) contra ~110 marcas.
 - **Marca sobre hosting gratuito** (p. ej. `paypal-login.github.io`).

@@ -30,7 +30,6 @@ export function showWarningBanner(result: AnalysisResult): void {
     background: '#b91c1c',
     color: '#fff',
     font: '500 13.5px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
-    boxShadow: '0 2px 12px rgba(0,0,0,.28)',
   });
 
   const icon = document.createElement('span');

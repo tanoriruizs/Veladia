@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { analyze } from '../src/engine/analyzer';
+import { analyzeContent } from '../src/engine/content-rules';
 import { DEFAULT_SETTINGS } from '../src/shared/storage';
 import type { PageContext, Settings } from '../src/engine/types';
 
@@ -49,6 +50,17 @@ describe('analyze (integración)', () => {
     const ctx = baseCtx({ url: 'https://recetas.example.com/', title: 'Pastel de pineapple casero' });
     const r = analyze(ctx.url, settings, ctx);
     expect(r.signals.map((s) => s.id)).not.toContain('brand-mismatch');
+  });
+  it('no marca una marca hermana en un dominio de la misma familia (gmail en google.com)', () => {
+    const s = analyzeContent(baseCtx({ url: 'https://accounts.google.com/', title: 'Iniciar sesión en Gmail' }));
+    expect(s.map((x) => x.id)).not.toContain('brand-mismatch');
+  });
+  it('no muestra señales de suplantación en un dominio de confianza', () => {
+    const custom: Settings = { ...settings, userAllowlist: ['mi-portal.com'] };
+    const ctx = baseCtx({ url: 'https://mi-portal.com/', title: 'Ofertas de PayPal y Netflix' });
+    const r = analyze(ctx.url, custom, ctx);
+    expect(r.signals.map((s) => s.id)).not.toContain('brand-mismatch');
+    expect(r.signals.some((s) => s.id === 'allowlisted')).toBe(true);
   });
   it('la allowlist del usuario reduce el riesgo', () => {
     const custom: Settings = { ...settings, userAllowlist: ['mi-empresa.tk'] };

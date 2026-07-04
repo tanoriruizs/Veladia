@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Veladia",
   "short_name": "Veladia",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Análisis de phishing y reputación de sitios con heurísticas locales. Privacidad total: ningún dato sale de tu navegador.",
   "minimum_chrome_version": "110",
   "icons": {
@@ -28,7 +28,7 @@
   "content_scripts": [
     {
       "js": [
-        "assets/content-script.ts-loader-CXWK7FUz.js"
+        "assets/content-script.ts-loader-7lNhTXtx.js"
       ],
       "matches": [
         "http://*/*",
@@ -56,8 +56,8 @@
         "assets/url-utils-BSyWh5eZ.js.map",
         "assets/messages-7jB4RCHe.js",
         "assets/messages-7jB4RCHe.js.map",
-        "assets/content-script.ts-B_l9_l_N.js",
-        "assets/content-script.ts-B_l9_l_N.js.map"
+        "assets/content-script.ts-CFexz5jv.js",
+        "assets/content-script.ts-CFexz5jv.js.map"
       ],
       "use_dynamic_url": false
     }

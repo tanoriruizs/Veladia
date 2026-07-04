@@ -1,6 +1,6 @@
 import { analyze } from '../engine/analyzer';
 import type { AnalysisResult, RiskLevel } from '../engine/types';
-import { getSettings, saveResult, getResult, clearResult } from '../shared/storage';
+import { getSettings, saveResult, getResult, clearResult, recordDetection } from '../shared/storage';
 import { MESSAGE, type Message } from '../shared/messages';
 
 chrome.runtime.onInstalled.addListener(({ reason }) => {
@@ -40,6 +40,7 @@ async function quickAnalyze(tabId: number, url: string): Promise<void> {
   await saveResult(tabId, result);
   await updateBadge(tabId, result);
   pushResult(tabId, result);
+  void recordDetection(result);
 }
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
@@ -62,6 +63,7 @@ chrome.runtime.onMessage.addListener((message: Message, sender, sendResponse) =>
       await saveResult(tabId, result);
       await updateBadge(tabId, result);
       pushResult(tabId, result);
+      void recordDetection(result);
       sendResponse({ type: MESSAGE.RESULT, result, showBanner: settings.showBanner });
     })();
     return true;

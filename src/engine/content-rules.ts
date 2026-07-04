@@ -1,6 +1,7 @@
 import { parseUrl, registrableDomain } from './url-utils';
 import { KNOWN_BRANDS } from '../data/brands';
 import { AMBIGUOUS_BRAND_WORDS } from './typosquatting';
+import { sameOwner } from './brand-family';
 import type { PageContext, Signal } from './types';
 
 export function analyzeContent(ctx: PageContext): Signal[] {
@@ -42,7 +43,7 @@ function checkBrandMismatch(ctx: PageContext, pageDomain: string): Signal | null
     const name = brand.split('.')[0];
     // palabra completa, no substring (que "pineapple" no active "apple")
     if (name.length < 4 || AMBIGUOUS_BRAND_WORDS.has(name)) continue;
-    if (pageDomain === brand) continue;
+    if (sameOwner(pageDomain, brand)) continue; // gmail en google.com es legítimo
     if (new RegExp(`\\b${name}\\b`).test(title)) {
       return { id: 'brand-mismatch', label: `La página menciona "${name}" pero el dominio no le pertenece`, weight: 25, category: 'content' };
     }
@@ -53,7 +54,7 @@ function checkBrandMismatch(ctx: PageContext, pageDomain: string): Signal | null
 function checkFaviconMismatch(ctx: PageContext, pageDomain: string): Signal | null {
   if (!ctx.faviconHost) return null;
   const faviconDomain = registrableDomain(ctx.faviconHost);
-  if (faviconDomain === pageDomain) return null;
+  if (sameOwner(faviconDomain, pageDomain)) return null;
   if (!KNOWN_BRANDS.includes(faviconDomain)) return null;
   const brand = faviconDomain.split('.')[0];
   return { id: 'favicon-mismatch', label: `El ícono proviene de "${brand}" pero el dominio no le pertenece`, weight: 18, category: 'content' };

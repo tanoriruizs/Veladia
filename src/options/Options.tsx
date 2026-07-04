@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSettings } from './useSettings';
+import { useHistory } from './useHistory';
 import { applyTheme } from '../shared/theme';
+import { serializeBackup, parseBackup, mergeUnique } from '../shared/lists';
 import { Logo } from '../popup/Logo';
-import type { Sensitivity, ThemeMode } from '../engine/types';
+import type { Sensitivity, Settings, ThemeMode } from '../engine/types';
 
 const SENSITIVITY: { value: Sensitivity; label: string; hint: string }[] = [
   { value: 'relaxed', label: 'Relajada', hint: 'Solo riesgos altos' },
@@ -74,14 +76,98 @@ export function Options() {
           placeholder="malicioso.tk" items={settings.userBlocklist} tone="block"
           onChange={(userBlocklist) => update({ userBlocklist })} />
 
+        <BackupCard settings={settings} update={update} />
+
+        <HistoryCard />
+
         <footer className="opt__foot">
           <p className="opt__foot-msg">Análisis 100% local. Ningún dato de navegación sale de tu equipo.</p>
-          <p className="opt__foot-meta">Veladia v1.1.0 · <a href="https://github.com/tanoriruizs/Veladia" target="_blank" rel="noopener noreferrer">github.com/tanoriruizs/Veladia</a></p>
+          <p className="opt__foot-meta">Veladia v1.2.0 · <a href="https://github.com/tanoriruizs/Veladia" target="_blank" rel="noopener noreferrer">github.com/tanoriruizs/Veladia</a></p>
         </footer>
       </main>
 
       <span className={`toast ${saved ? 'is-show' : ''}`}>Cambios guardados</span>
     </div>
+  );
+}
+
+const LEVEL_TEXT: Record<string, string> = { suspicious: 'Sospechoso', dangerous: 'Peligroso' };
+
+function HistoryCard() {
+  const { history, clear } = useHistory();
+  return (
+    <section className="card">
+      <div className="row">
+        <div className="card__head">
+          <h2>Historial de detecciones</h2>
+          <p>Sitios marcados como sospechosos o peligrosos. Se guarda solo en tu equipo.</p>
+        </div>
+        {history.length > 0 && (
+          <button type="button" className="btn-subtle" onClick={clear}>Borrar</button>
+        )}
+      </div>
+      {history.length === 0 ? (
+        <p className="empty-hint">Sin detecciones registradas por ahora.</p>
+      ) : (
+        <ul className="hist">
+          {history.map((e) => (
+            <li key={`${e.hostname}-${e.at}`}>
+              <span className={`hist__dot hist__dot--${e.level}`} title={LEVEL_TEXT[e.level] ?? e.level} />
+              <span className="hist__host" title={e.hostname}>{e.hostname}</span>
+              <span className="hist__score">{e.score}/100</span>
+              <span className="hist__date">{new Date(e.at).toLocaleDateString()}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function BackupCard({ settings, update }: { settings: Settings; update: (patch: Partial<Settings>) => void }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [error, setError] = useState(false);
+
+  const exportLists = () => {
+    const json = serializeBackup({ userAllowlist: settings.userAllowlist, userBlocklist: settings.userBlocklist });
+    const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'veladia-listas.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importFile = (file: File) => {
+    void file.text().then((text) => {
+      const backup = parseBackup(text);
+      if (!backup) { setError(true); return; }
+      setError(false);
+      update({
+        userAllowlist: mergeUnique(settings.userAllowlist, backup.userAllowlist),
+        userBlocklist: mergeUnique(settings.userBlocklist, backup.userBlocklist),
+      });
+    });
+  };
+
+  return (
+    <section className="card">
+      <div className="card__head">
+        <h2>Copia de seguridad</h2>
+        <p>Exporta tus listas a un archivo JSON o impórtalas desde otro equipo.</p>
+      </div>
+      <div className="backup">
+        <button type="button" className="btn" onClick={exportLists}>Exportar listas</button>
+        <button type="button" className="btn btn--ghost" onClick={() => fileRef.current?.click()}>Importar listas</button>
+        <input ref={fileRef} type="file" accept=".json,application/json" hidden
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) importFile(file);
+            e.target.value = '';
+          }} />
+      </div>
+      {error && <p className="backup__error">El archivo no es una copia válida de Veladia.</p>}
+    </section>
   );
 }
 
