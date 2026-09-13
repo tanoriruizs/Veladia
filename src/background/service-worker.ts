@@ -1,6 +1,6 @@
 import { analyze } from '../engine/analyzer';
 import type { AnalysisResult, RiskLevel } from '../engine/types';
-import { getSettings, saveResult, getResult, clearResult, recordDetection } from '../shared/storage';
+import { getSettings, saveResult, getResult, clearResult, recordDetection, getAcceptedRisk } from '../shared/storage';
 import { MESSAGE, type Message } from '../shared/messages';
 
 chrome.runtime.onInstalled.addListener(({ reason }) => {
@@ -33,6 +33,22 @@ function pushResult(tabId: number, result: AnalysisResult): void {
     .catch(() => {});
 }
 
+// sitio en blocklist: saca al usuario a la página de bloqueo de la extensión.
+// Se hace desde aquí (no inyectado en la página) para que el kit de phishing
+// no pueda quitar el aviso y sin esperar a que la página termine de cargar.
+async function interceptIfBlocked(tabId: number, result: AnalysisResult): Promise<boolean> {
+  if (!result.signals.some((s) => s.id === 'blocklisted')) return false;
+  const accepted = await getAcceptedRisk();
+  if (accepted.has(result.hostname)) return false;
+  const page = chrome.runtime.getURL(`src/blocked/index.html?u=${encodeURIComponent(result.url)}`);
+  try {
+    await chrome.tabs.update(tabId, { url: page });
+  } catch {
+    // la pestaña pudo cerrarse
+  }
+  return true;
+}
+
 async function quickAnalyze(tabId: number, url: string): Promise<void> {
   if (!/^https?:/.test(url)) return;
   const settings = await getSettings();
@@ -41,12 +57,16 @@ async function quickAnalyze(tabId: number, url: string): Promise<void> {
   await updateBadge(tabId, result);
   pushResult(tabId, result);
   void recordDetection(result);
+  await interceptIfBlocked(tabId, result);
 }
 
+// changeInfo.url llega tanto en cargas normales como en navegación de SPAs
+// (pushState); antes se exigía status === 'loading' y las SPAs se perdían
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
-  if (changeInfo.status === 'loading' && changeInfo.url) {
-    void quickAnalyze(tabId, changeInfo.url);
-  }
+  if (!changeInfo.url) return;
+  void quickAnalyze(tabId, changeInfo.url);
+  // avisa al content script para que reanalice el DOM de la nueva vista
+  chrome.tabs.sendMessage(tabId, { type: MESSAGE.URL_CHANGED }).catch(() => {});
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
@@ -64,7 +84,8 @@ chrome.runtime.onMessage.addListener((message: Message, sender, sendResponse) =>
       await updateBadge(tabId, result);
       pushResult(tabId, result);
       void recordDetection(result);
-      sendResponse({ type: MESSAGE.RESULT, result, showBanner: settings.showBanner });
+      const intercepted = await interceptIfBlocked(tabId, result);
+      sendResponse({ type: MESSAGE.RESULT, result, showBanner: settings.showBanner && !intercepted });
     })();
     return true;
   }

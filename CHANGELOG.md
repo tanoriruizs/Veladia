@@ -3,6 +3,40 @@
 Todas las novedades relevantes de Veladia se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/) y versionado semántico.
 
+## [1.3.0] — 2026-09-13
+
+### Detección
+- Nuevas señales de suplantación: nombre de marca con otro TLD (`paypal.net`),
+  marca combinada con palabras (`paypal-login.com`) y marca como subdominio de
+  un dominio ajeno (`paypal.com-secure.top`).
+- El typosquatting por distancia de edición ahora compara solo el nombre (sin
+  TLD) y con un umbral proporcional al largo: se acaban los falsos positivos
+  con marcas cortas (`abc.com` ~ `hsbc.com`, `room.us` ~ `zoom.us`…).
+- Homoglyphs de pares de letras (`rnicrosoft` -> `microsoft`, `vv` -> `w`).
+
+### Seguridad
+- La pantalla de bloqueo ahora es una página propia de la extensión: el service
+  worker redirige la pestaña en cuanto detecta la blocklist (antes de que la
+  página cargue) y el kit de phishing ya no puede ocultar ni borrar el aviso.
+- El banner de advertencia se monta en un Shadow DOM cerrado para resistir
+  manipulación desde la página.
+
+### Corregido
+- El soporte de SPAs no funcionaba: el parche de `history.pushState` vivía en
+  el *isolated world* del content script y la página nunca lo ejecutaba. Ahora
+  el service worker detecta el cambio de URL (`tabs.onUpdated`) y avisa al
+  content script.
+- El popup podía aceptar el resultado de otra pestaña si llegaba antes de
+  resolver la pestaña activa.
+- Dos análisis simultáneos podían perder entradas del historial (escrituras
+  serializadas).
+
+### Infraestructura
+- `dist/` deja de versionarse; la extensión compilada se publica como zip en
+  GitHub Releases (nuevo workflow al crear un tag `v*`).
+- Las listas generadas ya no incluyen timestamp: el workflow diario solo
+  commitea cuando los datos realmente cambian, y solo `src/data/allowlist.ts`.
+
 ## [1.2.0] — 2026-07-03
 
 ### Añadido

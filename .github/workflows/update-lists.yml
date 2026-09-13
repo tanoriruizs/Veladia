@@ -17,16 +17,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
-      - name: Instalar dependencias
-        run: npm ci
-
+      # el script solo usa módulos nativos de Node: no hace falta npm ci
       - name: Regenerar listas desde los feeds
         run: npm run update-lists
-
-      - name: Recompilar dist con las listas nuevas
-        run: npm run build
 
       - name: Commit y push si hay cambios
         run: |
@@ -36,6 +30,6 @@ jobs:
           fi
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add src/data/allowlist.ts dist
-          git commit -m "chore: actualizar listas de reputación y dist (automático)"
+          git add src/data/allowlist.ts
+          git commit -m "chore: actualizar listas de reputación (automático)"
           git push

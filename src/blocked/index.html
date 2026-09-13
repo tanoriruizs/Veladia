@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sitio bloqueado — Veladia</title>
+    <link rel="stylesheet" href="./blocked.css" />
+  </head>
+  <body>
+    <main class="card">
+      <div class="icon" aria-hidden="true">⚠</div>
+      <h1>Sitio de phishing conocido</h1>
+      <p id="host" class="host"></p>
+      <p class="body">
+        Este dominio está en una lista de phishing confirmado. No introduzcas
+        contraseñas, datos bancarios ni información personal.
+      </p>
+      <button id="back" type="button" class="primary">Volver a un lugar seguro (recomendado)</button>
+      <button id="proceed" type="button" class="secondary">Continuar bajo mi propio riesgo</button>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

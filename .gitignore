@@ -18,7 +18,8 @@ Thumbs.db
 # caché de build
 .vite/
 
-# nota: dist/ se versiona a propósito (extensión lista para cargar, aún no en la Web Store)
+# build: se genera con `npm run build`; el zip listo para instalar se publica en Releases
+dist/
 
 # playwright
 test-results/

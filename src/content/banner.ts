@@ -16,8 +16,13 @@ export function removeWarningBanner(): void {
 export function showWarningBanner(result: AnalysisResult): void {
   removeWarningBanner();
 
+  // shadow root cerrado: el JS de la página no puede llegar al contenido del
+  // banner para ocultarlo o vaciarlo (solo podría quitar el host completo)
+  const host = document.createElement('div');
+  host.id = BANNER_ID;
+  const root = host.attachShadow({ mode: 'closed' });
+
   const banner = document.createElement('div');
-  banner.id = BANNER_ID;
   banner.setAttribute('role', 'alert');
   Object.assign(banner.style, {
     position: 'fixed',
@@ -57,8 +62,9 @@ export function showWarningBanner(result: AnalysisResult): void {
     font: 'inherit',
     fontWeight: '600',
   });
-  dismiss.addEventListener('click', () => banner.remove());
+  dismiss.addEventListener('click', () => host.remove());
 
   banner.append(icon, text, dismiss);
-  document.documentElement.appendChild(banner);
+  root.appendChild(banner);
+  document.documentElement.appendChild(host);
 }

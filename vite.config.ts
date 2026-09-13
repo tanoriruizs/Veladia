@@ -9,6 +9,11 @@ export default defineConfig({
   build: {
     target: 'es2022',
     sourcemap: true,
-    rollupOptions: { input: { welcome: 'src/welcome/index.html' } },
+    rollupOptions: {
+      input: {
+        welcome: 'src/welcome/index.html',
+        blocked: 'src/blocked/index.html',
+      },
+    },
   },
 });
