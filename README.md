@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img alt="Versión" src="https://img.shields.io/badge/versión-1.2.0-2563eb" />
+  <img alt="Versión" src="https://img.shields.io/badge/versión-1.3.0-2563eb" />
   <img alt="Manifest V3" src="https://img.shields.io/badge/Manifest-V3-2563eb" />
   <img alt="React 19" src="https://img.shields.io/badge/React-19-2563eb" />
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.7-2563eb" />
@@ -72,12 +72,15 @@ todas las señales detectadas.
 
 - **Puntuación de riesgo 0–100** con veredicto claro: seguro / sospechoso / peligroso.
 - **Icono dinámico por pestaña** con indicador circular de estado.
-- **Banner de advertencia** configurable en los sitios peligrosos y **pantalla de
-  bloqueo** a página completa en phishing confirmado.
+- **Banner de advertencia** configurable en los sitios peligrosos y **página de
+  bloqueo** en phishing confirmado (el service worker redirige la pestaña antes
+  de que la página cargue; el sitio no puede ocultar el aviso).
 - **Popup con el desglose** de cada señal detectada y su categoría.
 - **Historial de detecciones** local en Ajustes y **exportar/importar** tus listas.
 - **Detección de typosquatting y homoglyphs** (distancia de Levenshtein + normalización
-  de caracteres parecidos: `g00gle`, `micros0ft`, letras cirílicas/griegas) contra ~110 marcas.
+  de caracteres parecidos: `g00gle`, `micros0ft`, `rnicrosoft`, letras cirílicas/griegas)
+  y de patrones de marca (`paypal-login.com`, `paypal.net`, `paypal.com-secure.top`)
+  contra ~110 marcas.
 - **Marca sobre hosting gratuito** (p. ej. `paypal-login.github.io`).
 - **Reglas de contenido**: formularios que envían credenciales a otro dominio, contraseñas
   sin HTTPS, suplantación de marca, favicon ajeno, iframes a pantalla completa y más.
@@ -102,17 +105,16 @@ Detalle completo en [PRIVACY.md](./PRIVACY.md).
 
 ## Instalación
 
-Veladia todavía no está en la Chrome Web Store, así que se instala manualmente.
-La carpeta `dist/` ya viene compilada en el repo, lista para cargar:
+Veladia todavía no está en la Chrome Web Store, así que se instala manualmente:
 
-1. Descarga el proyecto (**Code → Download ZIP**) y descomprímelo, o clónalo.
+1. Descarga el zip `veladia-vX.Y.Z.zip` de la última
+   [release](https://github.com/tanoriruizs/Veladia/releases) y descomprímelo
+   (o clona el repo y ejecuta `npm install && npm run build`, que genera `dist/`).
 2. Abre `chrome://extensions`.
 3. Activa el **Modo de desarrollador** (arriba a la derecha).
-4. Pulsa **Cargar descomprimida** y selecciona la carpeta `dist/`.
+4. Pulsa **Cargar descomprimida** y selecciona la carpeta descomprimida (o `dist/`).
 
 > En la primera instalación se abre automáticamente el tour de bienvenida.
-
-¿Prefieres compilarla tú mismo? `npm install && npm run build` regenera `dist/`.
 
 ---
 
@@ -144,13 +146,14 @@ src/
 │   ├── url-rules.ts       # Señales basadas en la URL
 │   ├── content-rules.ts   # Señales basadas en el DOM de la página
 │   ├── reputation.ts      # Listas allow/block (embebidas + del usuario)
-│   ├── typosquatting.ts   # Levenshtein + homoglyphs contra marcas conocidas
+│   ├── typosquatting.ts   # Homoglyphs, Levenshtein y patrones de marca contra ~110 marcas
 │   ├── scoring.ts         # Suma de pesos y clasificación por sensibilidad
 │   ├── url-utils.ts       # Parseo de URL y dominio registrable
 │   └── types.ts           # Tipos compartidos
 ├── data/         # Marcas conocidas, TLDs sospechosos y listas de reputación
-├── background/   # Service worker: orquestación e icono de estado por pestaña
-├── content/      # Recolección del DOM, banner de advertencia y soporte SPA
+├── background/   # Service worker: orquestación, icono por pestaña y bloqueo de blocklist
+├── blocked/      # Página de bloqueo a la que se redirige el phishing confirmado
+├── content/      # Recolección del DOM y banner de advertencia (Shadow DOM)
 ├── popup/        # UI React: puntuación, señales y estados
 ├── options/      # UI React: ajustes y listas del usuario
 ├── welcome/      # Tour de bienvenida
@@ -176,10 +179,13 @@ Cada señal aporta un peso; la suma (acotada a 0–100) es la puntuación.
 | Categoría   | Señal                                        | Peso |
 |-------------|----------------------------------------------|-----:|
 | URL         | Dominio parecido a una marca (typosquatting / homoglyph) | 35 |
+| URL         | Marca combinada con palabras (`paypal-login.com`) | 30 |
 | URL         | Host es una IP en vez de un dominio          | 30   |
 | URL         | La URL contiene `@` (oculta el destino)      | 30   |
 | URL         | Punycode (`xn--`, imita caracteres)          | 30   |
+| URL         | Marca como subdominio de un dominio ajeno    | 25   |
 | URL         | Marca sobre hosting gratuito                 | 22   |
+| URL         | Nombre de marca con otro TLD (`paypal.net`)  | 20   |
 | URL         | TLD poco confiable                           | 18   |
 | URL         | Demasiados subdominios anidados              | 15   |
 | URL         | Palabras típicas de phishing                 | ≤15  |
@@ -221,7 +227,8 @@ Desde la página de **Ajustes** (icono de engranaje en el popup) puedes:
 ## Reputación (listas reales)
 
 El archivo `src/data/allowlist.ts` se **genera** a partir de feeds públicos y se
-commitea al repositorio (el build nunca depende de la red):
+commitea al repositorio (el build nunca depende de la red). Un workflow diario
+lo regenera y commitea solo cuando los datos cambian:
 
 - **Allowlist** ← [Tranco](https://tranco-list.eu) (top 5000 sitios más visitados).
 - **Blocklist** ← [OpenPhish](https://openphish.com) (URLs de phishing en vivo).

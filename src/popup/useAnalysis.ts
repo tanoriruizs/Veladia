@@ -8,31 +8,33 @@ export function useAnalysis(): State {
   const [state, setState] = useState<State>({ loading: true, result: null });
   useEffect(() => {
     let active = true;
-    let currentTabId: number | undefined;
+    let onPush: ((message: Message) => void) | null = null;
 
-    chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
-      currentTabId = tab?.id;
+    // primero la pestaña activa; si no, un RESULT_PUSH de otra pestaña que
+    // llegue antes de conocerla se aceptaría por error
+    void chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
+      if (!active) return;
+      const currentTabId = tab?.id;
+
+      chrome.runtime.sendMessage(
+        { type: MESSAGE.GET_RESULT, tabId: currentTabId },
+        (response: { result: AnalysisResult | null } | undefined) => {
+          if (active) setState({ loading: false, result: response?.result ?? null });
+        },
+      );
+
+      // refresca si el análisis termina con el popup ya abierto
+      onPush = (message: Message) => {
+        if (message.type !== MESSAGE.RESULT_PUSH) return;
+        if (message.tabId !== currentTabId) return;
+        if (active) setState({ loading: false, result: message.result });
+      };
+      chrome.runtime.onMessage.addListener(onPush);
     });
-
-    chrome.runtime.sendMessage(
-      { type: MESSAGE.GET_RESULT },
-      (response: { result: AnalysisResult | null } | undefined) => {
-        if (!active) return;
-        setState({ loading: false, result: response?.result ?? null });
-      },
-    );
-
-    // refresca si el análisis termina con el popup ya abierto
-    const onPush = (message: Message) => {
-      if (message.type !== MESSAGE.RESULT_PUSH) return;
-      if (currentTabId !== undefined && message.tabId !== currentTabId) return;
-      if (active) setState({ loading: false, result: message.result });
-    };
-    chrome.runtime.onMessage.addListener(onPush);
 
     return () => {
       active = false;
-      chrome.runtime.onMessage.removeListener(onPush);
+      if (onPush) chrome.runtime.onMessage.removeListener(onPush);
     };
   }, []);
   return state;

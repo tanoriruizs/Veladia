@@ -6,7 +6,10 @@ import { parseUrl } from './url-utils';
 import type { AnalysisResult, PageContext, Settings } from './types';
 
 // en un dominio legítimo, decir que "imita a una marca" no tiene sentido
-const IMPERSONATION = new Set(['brand-mismatch', 'favicon-mismatch', 'brand-on-free-host', 'typosquatting']);
+const IMPERSONATION = new Set([
+  'brand-mismatch', 'favicon-mismatch', 'brand-on-free-host', 'typosquatting',
+  'brand-tld', 'brand-compound', 'brand-subdomain',
+]);
 
 export function analyze(url: string, settings: Settings, pageContext?: PageContext): AnalysisResult {
   const parsed = parseUrl(url);

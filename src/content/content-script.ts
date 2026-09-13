@@ -1,13 +1,10 @@
 import { collectPageContext } from './collect-context';
 import { showWarningBanner, removeWarningBanner } from './banner';
-import { showInterstitial, removeInterstitial } from './interstitial';
-import { MESSAGE } from '../shared/messages';
+import { MESSAGE, type Message } from '../shared/messages';
 import type { AnalysisResult } from '../engine/types';
 
 let lastUrl = '';
 let lastSignature = '';
-// hosts donde el usuario eligió "continuar bajo mi riesgo" (solo esta sesión)
-const acceptedRisk = new Set<string>();
 
 // firma de lo que importa; si no cambia, no re-analizamos
 function contentSignature(): string {
@@ -26,12 +23,9 @@ function analyzeCurrentPage(): void {
       (response: { result: AnalysisResult | null; showBanner?: boolean } | undefined) => {
         if (chrome.runtime.lastError || !response?.result) return;
         const result = response.result;
-        const isBlocklisted = result.signals.some((s) => s.id === 'blocklisted');
-
-        if (isBlocklisted && !acceptedRisk.has(result.hostname)) {
-          removeWarningBanner();
-          showInterstitial(result, () => acceptedRisk.add(result.hostname));
-        } else if (response.showBanner && result.level === 'dangerous') {
+        // los sitios en blocklist los intercepta el service worker con la
+        // página de bloqueo; aquí solo se gestiona el banner
+        if (response.showBanner && result.level === 'dangerous') {
           showWarningBanner(result);
         } else {
           removeWarningBanner();
@@ -47,42 +41,37 @@ function onNavigation(): void {
   if (location.href === lastUrl) return;
   lastUrl = location.href;
   removeWarningBanner();
-  removeInterstitial();
   analyzeCurrentPage();
 }
 
-// parchea History API para reanalizar en navegación de SPAs
-function installSpaHooks(): void {
-  const fire = () => window.dispatchEvent(new Event('veladia:locationchange'));
-  for (const method of ['pushState', 'replaceState'] as const) {
-    const original = history[method];
-    history[method] = function (this: History, ...args: Parameters<History['pushState']>) {
-      const result = original.apply(this, args);
-      fire();
-      return result;
-    };
-  }
-  window.addEventListener('popstate', fire);
-
-  let scheduled = false;
-  window.addEventListener('veladia:locationchange', () => {
-    if (scheduled) return;
-    scheduled = true;
-    setTimeout(() => {
-      scheduled = false;
-      onNavigation();
-    }, 350);
-  });
+// pequeña espera para que la SPA termine de pintar la nueva vista
+let scheduled = false;
+function scheduleNavigation(): void {
+  if (scheduled) return;
+  scheduled = true;
+  setTimeout(() => {
+    scheduled = false;
+    onNavigation();
+  }, 350);
 }
+
+// navegación de SPAs: el service worker detecta el cambio de URL
+// (tabs.onUpdated) y nos avisa; popstate cubre el botón atrás/adelante.
+// Nota: parchear history.pushState aquí no sirve — el content script vive en
+// un "isolated world" y la página nunca llama a la versión parcheada.
+chrome.runtime.onMessage.addListener((message: Message) => {
+  if (message.type === MESSAGE.URL_CHANGED) scheduleNavigation();
+});
+window.addEventListener('popstate', scheduleNavigation);
 
 // reanaliza si aparece contenido nuevo (formularios inyectados por JS)
 function installContentObserver(): void {
-  let scheduled = false;
+  let pending = false;
   const observer = new MutationObserver(() => {
-    if (scheduled) return;
-    scheduled = true;
+    if (pending) return;
+    pending = true;
     setTimeout(() => {
-      scheduled = false;
+      pending = false;
       if (contentSignature() !== lastSignature) analyzeCurrentPage();
     }, 800);
   });
@@ -91,7 +80,6 @@ function installContentObserver(): void {
 
 function start(): void {
   lastUrl = location.href;
-  installSpaHooks();
   installContentObserver();
   analyzeCurrentPage();
 }

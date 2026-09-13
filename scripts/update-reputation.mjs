@@ -77,33 +77,29 @@ function serializeSet(name, values) {
 async function main() {
   const allow = new Set(ALLOW_SEED);
   const block = new Set(BLOCK_SEED);
-  const sources = [];
 
   try {
     const { domains, date } = await fetchTranco(ALLOWLIST_SIZE);
     domains.forEach((d) => allow.add(d));
-    sources.push(`Tranco (${domains.length} dominios, lista ${date})`);
-    console.log(`✓ Tranco: ${domains.length} dominios`);
+    console.log(`✓ Tranco: ${domains.length} dominios (lista ${date})`);
   } catch (err) {
-    sources.push('Tranco: FALLÓ, solo semilla curada');
     console.warn(`✗ Tranco falló (${err.message}); se usa la semilla curada.`);
   }
 
   try {
     const hosts = await fetchOpenPhish();
     hosts.forEach((h) => { if (!allow.has(h)) block.add(h); });
-    sources.push(`OpenPhish (${hosts.size} hosts de phishing)`);
     console.log(`✓ OpenPhish: ${hosts.size} hosts`);
   } catch (err) {
-    sources.push('OpenPhish: FALLÓ, solo semilla curada');
     console.warn(`✗ OpenPhish falló (${err.message}); se usa la semilla curada.`);
   }
 
+  // cabecera sin fechas ni timestamps: si los datos no cambian, el archivo
+  // queda idéntico byte a byte y el workflow diario no genera commits vacíos
   const header =
     `// GENERADO por scripts/update-reputation.mjs — NO editar a mano.\n` +
     `// Actualiza con: npm run update-lists\n` +
-    `// Generado: ${new Date().toISOString()}\n` +
-    `// Fuentes: ${sources.join(' · ')}\n`;
+    `// Fuentes: Tranco (allowlist) y OpenPhish (blocklist).\n`;
 
   const body =
     `${header}\n` +

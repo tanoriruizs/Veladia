@@ -3,6 +3,7 @@ import type { AnalysisResult, RiskLevel, Settings } from '../engine/types';
 const SETTINGS_KEY = 'veladia:settings';
 const RESULT_PREFIX = 'veladia:result:';
 const HISTORY_KEY = 'veladia:history';
+const ACCEPTED_RISK_KEY = 'veladia:accepted-risk';
 const HISTORY_MAX = 50;
 
 export interface DetectionEntry {
@@ -48,13 +49,34 @@ export async function getHistory(): Promise<DetectionEntry[]> {
   return (stored[HISTORY_KEY] as DetectionEntry[] | undefined) ?? [];
 }
 
+// serializa las escrituras del historial: dos análisis simultáneos (URL rápida
+// + contenido) hacían leer-modificar-escribir a la vez y se perdían entradas
+let historyWrite: Promise<void> = Promise.resolve();
+
 // guarda la detección más reciente por host (solo sospechoso/peligroso)
-export async function recordDetection(result: AnalysisResult): Promise<void> {
-  if (result.level === 'safe' || !result.hostname) return;
-  const history = await getHistory();
-  const rest = history.filter((e) => e.hostname !== result.hostname);
-  rest.unshift({ hostname: result.hostname, level: result.level, score: result.score, at: result.analyzedAt });
-  await chrome.storage.local.set({ [HISTORY_KEY]: rest.slice(0, HISTORY_MAX) });
+export function recordDetection(result: AnalysisResult): Promise<void> {
+  const task = historyWrite.then(async () => {
+    if (result.level === 'safe' || !result.hostname) return;
+    const history = await getHistory();
+    const rest = history.filter((e) => e.hostname !== result.hostname);
+    rest.unshift({ hostname: result.hostname, level: result.level, score: result.score, at: result.analyzedAt });
+    await chrome.storage.local.set({ [HISTORY_KEY]: rest.slice(0, HISTORY_MAX) });
+  });
+  historyWrite = task.catch(() => {});
+  return task;
+}
+
+// hosts en blocklist donde el usuario eligió "continuar bajo mi riesgo"
+// (chrome.storage.session: se olvida al cerrar el navegador)
+export async function getAcceptedRisk(): Promise<Set<string>> {
+  const stored = await chrome.storage.session.get(ACCEPTED_RISK_KEY);
+  return new Set((stored[ACCEPTED_RISK_KEY] as string[] | undefined) ?? []);
+}
+
+export async function addAcceptedRisk(hostname: string): Promise<void> {
+  const accepted = await getAcceptedRisk();
+  accepted.add(hostname);
+  await chrome.storage.session.set({ [ACCEPTED_RISK_KEY]: [...accepted] });
 }
 
 export async function clearHistory(): Promise<void> {
